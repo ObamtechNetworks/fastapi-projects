@@ -1,8 +1,18 @@
+from typing import Optional
 from fastapi import Body, FastAPI
 
 from pydantic import BaseModel
 
 app = FastAPI()
+
+# Pydantic models are used to define the structure of the data that we expect to receive in our API.
+# They also provide validation and serialization of the data. In this example, we define a Post model with three fields: title, content, and published.
+# The published field has a default value of True.
+class Post(BaseModel):
+    title: str
+    content: str
+    published: bool = True
+    rating: Optional[int] = None
 
 @app.get("/")
 def root():
@@ -15,6 +25,7 @@ def get_post():
 
 
 @app.post("/createposts")
-def create_posts(payload: dict = Body(...)):
-    print(payload)
-    return {"new_post": f'title: {payload["title"]}, content: {payload["content"]}'}
+def create_posts(post: Post):
+    print(post)
+    print(post.model_dump())
+    return {"data": post}
