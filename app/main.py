@@ -74,7 +74,7 @@ def get_post(id: int):
     if not post:
         # response.status_code = status.HTTP_404_NOT_FOUND
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Post with id: {id} was not found")
+                            detail=f"Post with id: {id} does not exist")
     return {"post_detail": post}
 
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -85,7 +85,7 @@ def delete_post(id: int):
     conn.commit() # Commit the transaction
     if not deleted_post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Post with id: {id} was not found")
+                            detail=f"Post with id: {id} does not exist")
     # 204 No Content should not return a body
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -108,12 +108,11 @@ def update_post_partial(id: int, post: PostPatch):
 
 @app.put("/posts/{id}", status_code=status.HTTP_200_OK)
 def update_post(id: int, post: Post): # ensure that the request comes with the right data structure by using the Post model
-    post_dict = post.model_dump()
-    post_dict["id"] = id
-    found_post = find_post(id)
-    if not found_post:
+    cursor.execute("""UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *""",
+                   (post.title, post.content, post.published, id))
+    updated_post = cursor.fetchone()
+    conn.commit() # commit the transaction to save the changes to the database
+    if not updated_post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Post with id: {id} was not found")
-    index = my_posts.index(found_post)
-    my_posts[index] = post_dict
-    return {"data": post_dict, "UserMessage": "Post updated successfully"}
+                            detail=f"Post with id: {id} does not exist")
+    return {"data": updated_post, "UserMessage": "Post updated successfully"}
