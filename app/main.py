@@ -79,11 +79,14 @@ def get_post(id: int):
 
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
-    post = find_post(id)
-    if not post:
+    # Perform the delete and get the deleted row back in one go
+    cursor.execute("""DELETE FROM posts WHERE id = %s RETURNING *""", (id,))
+    deleted_post = cursor.fetchone()
+    conn.commit() # Commit the transaction
+    if not deleted_post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Post with id: {id} was not found")
-    my_posts.remove(post)
+    # 204 No Content should not return a body
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @app.patch("/posts/{id}", status_code=status.HTTP_200_OK)
