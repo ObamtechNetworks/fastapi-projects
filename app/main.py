@@ -89,21 +89,35 @@ def delete_post(id: int):
     # 204 No Content should not return a body
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-@app.patch("/posts/{id}", status_code=status.HTTP_200_OK)
+@app.patch("/posts/{id}")
 def update_post_partial(id: int, post: PostPatch):
-    update_data = post.model_dump(exclude_unset=True) # exclude_unset=True ensures that only the fields that are provided in the request are included in the post_dict
+    # 1. Convert Pydantic model to a dict, ignoring fields the user didn't send
+    update_data = post.model_dump(exclude_unset=True)
+
     if not update_data:
-        raise HTTPException(
-            status_code=400,
-            detail="PATCH body cannot be empty"
-        )
-    found_post = find_post(id)
-    if not found_post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Post with id: {id} was not found")
-    index = my_posts.index(found_post)
-    updated_post = {**found_post, **update_data} # merge the existing post with the new data
-    my_posts[index] = updated_post
+        raise HTTPException(status_code=400, detail="No fields provided for update")
+
+    # 2. Build a dynamic SQL query:
+    # simplify the "existing data" merge using dictionary unpacking.
+
+    cursor.execute("SELECT * FROM posts WHERE id = %s", (id,))
+    existing_post = cursor.fetchone()
+
+    if not existing_post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Post {id} not found")
+
+    # Merge existing data with new data, giving precedence to the new data
+    updated_values = {**existing_post, **update_data}
+
+    cursor.execute(
+        """UPDATE posts SET title = %s, content = %s, published = %s 
+           WHERE id = %s RETURNING *""",
+        (updated_values['title'], updated_values['content'], updated_values['published'], id)
+    )
+    
+    updated_post = cursor.fetchone()
+    conn.commit()
+
     return {"data": updated_post, "UserMessage": "Post updated successfully"}
 
 @app.put("/posts/{id}", status_code=status.HTTP_200_OK)
