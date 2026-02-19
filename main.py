@@ -14,6 +14,10 @@ class Post(BaseModel):
     content: str
     published: bool = True
     rating: Optional[int] = None
+    
+class PostPatch(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
 
 
 my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1, "published": True, "rating": 5},
@@ -62,3 +66,32 @@ def delete_post(id: int):
                             detail=f"Post with id: {id} was not found")
     my_posts.remove(post)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@app.patch("/posts/{id}", status_code=status.HTTP_200_OK)
+def update_post_partial(id: int, post: PostPatch):
+    update_data = post.model_dump(exclude_unset=True) # exclude_unset=True ensures that only the fields that are provided in the request are included in the post_dict
+    if not update_data:
+        raise HTTPException(
+            status_code=400,
+            detail="PATCH body cannot be empty"
+        )
+    found_post = find_post(id)
+    if not found_post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Post with id: {id} was not found")
+    index = my_posts.index(found_post)
+    updated_post = {**found_post, **update_data} # merge the existing post with the new data
+    my_posts[index] = updated_post
+    return {"data": updated_post, "UserMessage": "Post updated successfully"}
+
+@app.put("/posts/{id}", status_code=status.HTTP_200_OK)
+def update_post(id: int, post: Post): # ensure that the request comes with the right data structure by using the Post model
+    post_dict = post.model_dump()
+    post_dict["id"] = id
+    found_post = find_post(id)
+    if not found_post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Post with id: {id} was not found")
+    index = my_posts.index(found_post)
+    my_posts[index] = post_dict
+    return {"data": post_dict, "UserMessage": "Post updated successfully"}
