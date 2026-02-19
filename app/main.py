@@ -1,11 +1,15 @@
 from time import sleep
 from typing import Optional
 from random import randrange
-from fastapi import Body, FastAPI, Response, status, HTTPException
+from fastapi import Body, FastAPI, Response, status, HTTPException, Depends
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from . import models
+from .database import engine, get_db
+
+models.Base.metadata.create_all(bind=engine) # create the tables in the database based on the models defined in models.py
 
 app = FastAPI()
 
@@ -46,6 +50,12 @@ def find_post(id):
 def root():
     return {"message": "Welcome to my API"}
 
+# test
+@app.get("/sqlalchemy")
+def test_post(db: Session = Depends(get_db)):
+    
+    posts = db.query(models.Post).all()
+    return {"data": posts}
 
 @app.get("/posts")
 def get_posts():
