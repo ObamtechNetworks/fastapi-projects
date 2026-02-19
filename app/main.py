@@ -6,25 +6,12 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from . import models
+from . import models, schemas
 from .database import engine, get_db
 
 models.Base.metadata.create_all(bind=engine) # create the tables in the database based on the models defined in models.py
 
 app = FastAPI()
-
-# Pydantic models are used to define the structure of the data that we expect to receive in our API.
-# They also provide validation and serialization of the data. In this example, we define a Post model with three fields: title, content, and published.
-# The published field has a default value of True.
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True
-    # rating: Optional[int] = None
-    
-class PostPatch(BaseModel):
-    title: Optional[str] = None
-    content: Optional[str] = None
 
 # while True:
 #     try:
@@ -62,8 +49,8 @@ def get_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
     return {"data": posts}
 
-@app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_posts(post: Post, db: Session = Depends(get_db)):
+@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.PostResponse)
+def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
     new_post = models.Post(**post.model_dump()) # unpack the post object into a dictionary and pass it to the Post model to create a new instance of the Post model
     db.add(new_post)
     db.commit()
@@ -77,7 +64,7 @@ def get_latest_post(db: Session = Depends(get_db)):
     return {"data": post}
 
 
-@app.get("/posts/{id}")
+@app.get("/posts/{id}", response_model=schemas.PostResponse, status_code=status.HTTP_200_OK)
 def get_post(id: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == id).first()
     if not post:
@@ -98,8 +85,8 @@ def delete_post(id: int, db: Session = Depends(get_db)):
     # 204 No Content should not return a body
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-@app.patch("/posts/{id}")
-def update_post_partial(id: int, post: PostPatch, db: Session = Depends(get_db)):
+@app.patch("/posts/{id}", status_code=status.HTTP_200_OK, response_model=schemas.PostResponse)
+def update_post_partial(id: int, post: schemas.PostPatch, db: Session = Depends(get_db)):
     # 1. Get the query object
     post_query = db.query(models.Post).filter(models.Post.id == id)
     existing_post = post_query.first()
@@ -120,8 +107,8 @@ def update_post_partial(id: int, post: PostPatch, db: Session = Depends(get_db))
 
     return {"data": post_query.first(), "UserMessage": "Post updated successfully"}
 
-@app.put("/posts/{id}", status_code=status.HTTP_200_OK)
-def update_post(id: int, post: Post, db: Session = Depends(get_db)): # ensure that the request comes with the right data structure by using the Post model
+@app.put("/posts/{id}", status_code=status.HTTP_200_OK, response_model=schemas.PostResponse)
+def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)): # ensure that the request comes with the right data structure by using the Post model
     post_query = db.query(models.Post).filter(models.Post.id == id)
     if not post_query.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
