@@ -37,13 +37,6 @@ app = FastAPI()
 def root():
     return {"message": "Welcome to my API"}
 
-# test
-@app.get("/sqlalchemy")
-def test_post(db: Session = Depends(get_db)):
-    
-    posts = db.query(models.Post).all()
-    return {"data": posts}
-
 @app.get("/posts", status_code=status.HTTP_200_OK, response_model=list[schemas.PostResponse])
 def get_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
