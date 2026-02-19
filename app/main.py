@@ -55,10 +55,12 @@ def get_posts():
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_posts(post: Post):
-    post_dict = post.model_dump()
-    post_dict["id"] = randrange(0, 1000000)
-    my_posts.append(post_dict)
-    return {"data": post_dict}
+    cursor.execute("""INSERT INTO posts (title, content, published) 
+                   VALUES (%s, %s, %s) RETURNING *""",
+                   (post.title, post.content, post.published))
+    conn.commit() # commit the transaction to save the changes to the database
+    new_post = cursor.fetchone()
+    return {"data": new_post, "UserMessage": "Post created successfully"}
 
 @app.get("/posts/latest")
 def get_latest_post():
