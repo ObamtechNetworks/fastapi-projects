@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 class PostBase(BaseModel):
     title: str
@@ -24,4 +24,20 @@ class PostResponse(PostBase):
     class Config:
         # This is CRITICAL for SQLAlchemy. 
         # It tells Pydantic to read data even if it's an ORM object, not a dict.
+        from_attributes = True
+
+
+class UserBase(BaseModel):
+    email: EmailStr
+
+class UserCreate(UserBase):
+    password: str
+
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+    created_at: datetime
+
+    class Config:
         from_attributes = True
