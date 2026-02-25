@@ -6,6 +6,7 @@ from ..database import engine, get_db
 
 router = APIRouter(
     prefix="/users",
+    tags=["Users"]
 )
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)

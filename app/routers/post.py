@@ -5,6 +5,7 @@ from ..database import engine, get_db
 
 router = APIRouter(
     prefix="/posts",
+    tags=["Posts"]
 )
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[schemas.PostResponse])
