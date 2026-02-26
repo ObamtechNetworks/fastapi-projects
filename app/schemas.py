@@ -44,3 +44,13 @@ class UserOut(BaseModel):
 
 class UserLogin(UserBase):
     password: str
+    
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    id: Optional[str | int] = None
+    
+class TokenResponse(Token):
+    pass
