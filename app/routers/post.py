@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
+
+from app.oauth2 import get_current_user
 from .. import models, schemas
 from ..database import engine, get_db
 
@@ -8,13 +10,15 @@ router = APIRouter(
     tags=["Posts"]
 )
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=list[schemas.PostResponse])
-def get_posts(db: Session = Depends(get_db)):
+@router.get("", status_code=status.HTTP_200_OK, response_model=list[schemas.PostResponse])
+def get_posts(db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
     posts = db.query(models.Post).all()
     return posts
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.PostResponse)
-def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=schemas.PostResponse)
+def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
+    
+    # print("Current user:", current_user.id)  # Debugging line to check the current user
     new_post = models.Post(**post.model_dump()) # unpack the post object into a dictionary and pass it to the Post model to create a new instance of the Post model
     db.add(new_post)
     db.commit()
@@ -22,14 +26,14 @@ def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
     return new_post
 
 @router.get("/latest", status_code=status.HTTP_200_OK, response_model=schemas.PostResponse)
-def get_latest_post(db: Session = Depends(get_db)):
+def get_latest_post(db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
     # Order by ID descending and take the first one
     post = db.query(models.Post).order_by(models.Post.id.desc()).first()
     return post
 
 
 @router.get("/{id}", response_model=schemas.PostResponse, status_code=status.HTTP_200_OK)
-def get_post(id: int, db: Session = Depends(get_db)):
+def get_post(id: int, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
     post = db.query(models.Post).filter(models.Post.id == id).first()
     if not post:
         # response.status_code = status.HTTP_404_NOT_FOUND
@@ -38,7 +42,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
     return post
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int, db: Session = Depends(get_db)):
+def delete_post(id: int, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
     # Perform the delete and get the deleted row back in one go
     post = db.query(models.Post).filter(models.Post.id == id)
     if not post.first():
@@ -50,14 +54,14 @@ def delete_post(id: int, db: Session = Depends(get_db)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @router.patch("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.PostResponse)
-def update_post_partial(id: int, post: schemas.PostPatch, db: Session = Depends(get_db)):
+def update_post_partial(id: int, post: schemas.PostPatch, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
     # 1. Get the query object
     post_query = db.query(models.Post).filter(models.Post.id == id)
     existing_post = post_query.first()
 
     if not existing_post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
-                            detail=f"Post {id} not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Post with id {id} does not exist")
 
     # 2. Extract only the provided fields
     update_data = post.model_dump(exclude_unset=True)
@@ -72,7 +76,7 @@ def update_post_partial(id: int, post: schemas.PostPatch, db: Session = Depends(
     return post_query.first()
 
 @router.put("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.PostResponse)
-def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)): # ensure that the request comes with the right data structure by using the Post model
+def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)): # ensure that the request comes with the right data structure by using the Post model
     post_query = db.query(models.Post).filter(models.Post.id == id)
     if not post_query.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
