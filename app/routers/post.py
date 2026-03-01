@@ -44,11 +44,17 @@ def get_post(id: int, db: Session = Depends(get_db), current_user: int = Depends
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
     # Perform the delete and get the deleted row back in one go
-    post = db.query(models.Post).filter(models.Post.id == id)
-    if not post.first():
+    post_query = db.query(models.Post).filter(models.Post.id == id)
+    post = post_query.first()
+    if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Post with id: {id} does not exist")
-    post.delete(synchronize_session=False)
+
+    # Check if the current user is the owner of the post before deleting
+    if post.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Not authorized to perform requested action on this post")
+    post_query.delete(synchronize_session=False)
     db.commit()
     # 204 No Content should not return a body
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -62,6 +68,11 @@ def update_post_partial(id: int, post: schemas.PostPatch, db: Session = Depends(
     if not existing_post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Post with id {id} does not exist")
+        
+    # Check if the current user is the owner of the post before updating
+    if existing_post.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Not authorized to perform requested action on this post")
 
     # 2. Extract only the provided fields
     update_data = post.model_dump(exclude_unset=True)
@@ -78,9 +89,18 @@ def update_post_partial(id: int, post: schemas.PostPatch, db: Session = Depends(
 @router.put("/{id}", status_code=status.HTTP_200_OK, response_model=schemas.PostResponse)
 def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)): # ensure that the request comes with the right data structure by using the Post model
     post_query = db.query(models.Post).filter(models.Post.id == id)
-    if not post_query.first():
+    existing_post = post_query.first()
+    
+    if not existing_post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Post with id: {id} does not exist")
+        
+    # Check if the current user is the owner of the post before updating
+    if existing_post.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Not authorized to perform requested action on this post")
+        
+    # The model_dump() method converts the Pydantic model instance into a dictionary, which can then be used to update the SQLAlchemy model instance in the database. The synchronize_session=False argument is used to optimize the update operation by not synchronizing the session after the update, which can improve performance when updating multiple records.
     post_query.update(post.model_dump(), synchronize_session=False)
     db.commit()
     return post_query.first()
