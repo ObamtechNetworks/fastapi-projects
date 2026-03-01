@@ -1,4 +1,5 @@
 from sqlalchemy import TIMESTAMP, Column, Integer, String, Boolean, func, text, ForeignKey
+from sqlalchemy.orm import relationship
 from .database import Base
 
 class Post(Base):
@@ -9,6 +10,7 @@ class Post(Base):
     content = Column(String, nullable=False)
     published = Column(Boolean, server_default=text('true'), nullable=False)
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    owner = relationship("User") # set up a relationship between the Post and User models using the owner_id foreign key. This allows us to easily access the user who created a post by using the relationship defined in the User model.
     created_at = Column(TIMESTAMP(timezone=True),
                         nullable=False, server_default=func.now())
     updated_at = Column(TIMESTAMP(timezone=True),

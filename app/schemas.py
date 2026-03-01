@@ -14,11 +14,20 @@ class PostPatch(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     published: Optional[bool] = None
-    
+
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 
 class PostResponse(PostBase):
     id: int
-    owner_id:int
+    owner: UserOut # This will include the owner's email and created_at fields in the response when we return a post. The owner field is of type UserOut, which is a Pydantic model that includes the id, email, and created_at fields of the user who created the post.
+    owner_id: int
     created_at: datetime
     updated_at: datetime
 
@@ -33,15 +42,6 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-
-
-class UserOut(BaseModel):
-    id: int
-    email: EmailStr
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class UserLogin(UserBase):
     password: str
