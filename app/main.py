@@ -1,8 +1,6 @@
-from fastapi import Body, FastAPI, Response, status, HTTPException, Depends
-from sqlalchemy.orm import Session
-from . import models, schemas
-from .database import engine, get_db
-from .utils import hash_password
+from fastapi import Body, FastAPI
+from . import models
+from .database import engine
 from .routers import post, user, auth
 
 models.Base.metadata.create_all(bind=engine) # create the tables in the database based on the models defined in models.py
