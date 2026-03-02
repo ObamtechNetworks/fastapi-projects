@@ -1,6 +1,7 @@
+from operator import le
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, conint
 
 class PostBase(BaseModel):
     title: str
@@ -55,3 +56,7 @@ class TokenData(BaseModel):
     
 class TokenResponse(Token):
     pass
+
+class Vote(BaseModel):
+    post_id: int
+    dir: conint(le=1) # This means dir can only be 0 or 1. If it's 1, it means the user wants to like the post. If it's 0, it means the user wants to unlike the post.
