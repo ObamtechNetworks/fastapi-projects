@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.oauth2 import get_current_user
 from .. import models, schemas
@@ -11,10 +12,22 @@ router = APIRouter(
     tags=["Posts"]
 )
 
-@router.get("", status_code=status.HTTP_200_OK, response_model=list[schemas.PostResponse])
+@router.get("", status_code=status.HTTP_200_OK, response_model=List[schemas.PostOut])
 def get_posts(db: Session = Depends(get_db), current_user: int = Depends(get_current_user), limit: int = 10, skip: int = 0, search: Optional[str] = ""):
     posts = db.query(models.Post).filter(models.Post.title.icontains(search)).limit(limit).offset(skip).all()
-    return posts
+    
+    results = db.query(
+        models.Post,
+        func.count(models.Vote.post_id).label("votes")
+        ).join(
+            models.Vote,
+            models.Vote.post_id == models.Post.id,
+            isouter=True).filter(
+                models.Post.title.icontains(search)
+                ).group_by(models.Post.id).limit(limit).offset(skip).all()
+        
+    # return [{"Post": post, "votes": votes} for post, votes in results]
+    return results
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=schemas.PostResponse)
 def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):

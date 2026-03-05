@@ -37,6 +37,13 @@ class PostResponse(PostBase):
         # It tells Pydantic to read data even if it's an ORM object, not a dict.
         from_attributes = True
 
+class PostOut(BaseModel):
+    Post: PostResponse
+    votes: int
+    
+    class Config:
+        from_attributes = True
+    
 
 class UserBase(BaseModel):
     email: EmailStr
