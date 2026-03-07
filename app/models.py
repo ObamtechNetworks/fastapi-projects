@@ -26,6 +26,7 @@ class User(Base):
                         nullable=False, server_default=func.now())
     updated_at = Column(TIMESTAMP(timezone=True),
                         nullable=False, server_default=func.now(), onupdate=func.now())
+    phone_number = Column(String, nullable=True)
 
 
 #  create model for votes table

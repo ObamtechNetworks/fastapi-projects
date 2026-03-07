@@ -3,7 +3,8 @@ from . import models
 from .database import engine
 from .routers import post, user, auth, vote
 
-models.Base.metadata.create_all(bind=engine) # create the tables in the database based on the models defined in models.py
+# alembic now handles this for us.
+# models.Base.metadata.create_all(bind=engine) # create the tables in the database based on the models defined in models.py
 
 app = FastAPI()
 
