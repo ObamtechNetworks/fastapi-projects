@@ -3,7 +3,17 @@ name: CI/CD Build and Deploy
 on: [push, pull_request]
 
 jobs:
+  # job specific environment variable
   job1:
+    env:
+      DATABASE_HOSTNAME: localhost
+      DATABASE_PORT: 5432
+      DATABASE_PASSWORD: root
+      DATABASE_NAME: fastapi
+      DATABASE_USERNAME: postgres
+      SECRET_KEY: 03c668e5d457db939f7b802b0a8ebfb8c16b772cb2bad258b1ace64429e3ec7a
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
     runs-on: ubuntu-latest
 
     steps:
