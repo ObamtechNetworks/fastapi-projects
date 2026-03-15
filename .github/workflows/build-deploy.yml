@@ -1,0 +1,29 @@
+name: CI/CD Build and Deploy
+
+on: [push, pull_request]
+
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: say hi to michael
+        run: echo "hello Michael!"
+
+      # - name: Set up SSH
+      #   uses: webfactory/ssh-agent@v0.8.1
+      #   with:
+      #     ssh-private-key: #{{ secrets.VM_SSH_KEY }}
+
+      # - name: Deploy to VM
+      #   run: |
+      #     ssh -o StrictHostKeyChecking=no your_user@35.188.13.185 << 'EOF'
+      #       cd /path/to/your/project
+      #       git pull origin main
+      #       source venv/bin/activate
+      #       pip install -r requirements.txt
+      #       # restart Gunicorn
+      #       sudo systemctl restart gunicorn
+      #     EOF
