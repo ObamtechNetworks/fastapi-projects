@@ -17,6 +17,10 @@ jobs:
         run: python -m pip install --upgrade pip
       - name: Installing all dependencies
         run: pip install -r requirements.txt
+      - name: Run automation tests wtih pytest
+        run: |
+          pip install pytest
+          pytest
 
       # - name: Set up SSH
       #   uses: webfactory/ssh-agent@v0.8.1
