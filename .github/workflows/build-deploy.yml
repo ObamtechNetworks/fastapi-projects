@@ -93,13 +93,19 @@ jobs:
             docker pull "$IMAGE"
             docker stop fastapi-app || true
             docker rm fastapi-app || true
-            # Kill any process using port 8000
             sudo fuser -k 8000/tcp || true
             sleep 2
             docker run -d \
               --name fastapi-app \
               -p 8000:8000 \
-              --restart unless-stopped \
+              -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+              -e ALGORITHM="${{ secrets.ALGORITHM }}" \
+              -e ACCESS_TOKEN_EXPIRE_MINUTES="${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}" \
+              -e DATABASE_HOSTNAME="${{ secrets.DATABASE_HOSTNAME }}" \
+              -e DATABASE_PORT="${{ secrets.DATABASE_PORT }}" \
+              -e DATABASE_USERNAME="${{ secrets.DATABASE_USERNAME }}" \
+              -e DATABASE_PASSWORD="${{ secrets.DATABASE_PASSWORD }}" \
+              -e DATABASE_NAME="${{ secrets.DATABASE_NAME }}" \
               "$IMAGE"
           EOF
 
