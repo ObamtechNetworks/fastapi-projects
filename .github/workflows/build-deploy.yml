@@ -92,10 +92,10 @@ jobs:
 
       - name: Deploy on server from Docker
         run: |
-          IMAGE="${{ secrets.DOCKER_HUB_USERNAME }}/fastapi-posts-backend:latest"
+          IMAGE="devobams/fastapi-posts-backend:latest"
 
           ssh -o StrictHostKeyChecking=no ipadeolamichaelbamidele@35.188.13.185 << EOF
-            docker pull \$IMAGE
+            docker pull $IMAGE
 
             docker stop fastapi-app || true
             docker rm fastapi-app || true
@@ -114,19 +114,19 @@ jobs:
               -e DATABASE_USERNAME="${{ secrets.DATABASE_USERNAME }}" \
               -e DATABASE_PASSWORD="${{ secrets.DATABASE_PASSWORD }}" \
               -e DATABASE_NAME="${{ secrets.DATABASE_NAME }}" \
-              \$IMAGE
+              $IMAGE
           EOF
 
-      # - name: Deploy manually to VM
-      #   run: |
-      #     ssh -o StrictHostKeyChecking=no ipadeolamichaelbamidele@35.188.13.185 << 'EOF'
-      #       cd ~/app
-      #       source venv/bin/activate
-      #       cd src
-      #       git pull origin main
-      #       pip install -r requirements.txt
-      #       sudo systemctl restart fastapi-service.service
-      #     EOF
+            # - name: Deploy manually to VM
+            #   run: |
+            #     ssh -o StrictHostKeyChecking=no ipadeolamichaelbamidele@35.188.13.185 << 'EOF'
+            #       cd ~/app
+            #       source venv/bin/activate
+            #       cd src
+            #       git pull origin main
+            #       pip install -r requirements.txt
+            #       sudo systemctl restart fastapi-service.service
+            #     EOF
   # deploy-render:
   #   name: Deploy to Render
   #   runs-on: ubuntu-latest
