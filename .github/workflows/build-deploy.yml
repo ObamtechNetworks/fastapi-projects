@@ -6,26 +6,29 @@ on:
   pull_request:
 
 jobs:
-  # job specific environment variable
   build:
+    runs-on: ubuntu-latest
+
     environment:
       name: TESTING
+
     env:
-      DATABASE_HOSTNAME: ${{secrets.DATABASE_HOSTNAME}}
-      DATABASE_PORT: ${{secrets.DATABASE_PORT}}
-      DATABASE_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
-      DATABASE_NAME: ${{secrets.DATABASE_NAME}}
-      DATABASE_USERNAME: ${{secrets.DATABASE_USERNAME}}
-      SECRET_KEY: ${{secrets.SECRET_KEY}}
-      ALGORITHM: ${{secrets.ALGORITHM}}
-      ACCESS_TOKEN_EXPIRE_MINUTES: ${{secrets.ACCESS_TOKEN_EXPIRE_MINUTES}}
-    
+      DATABASE_HOSTNAME: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}_test
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      ALGORITHM: ${{ secrets.ALGORITHM }}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
+
     services:
       postgres:
-        image: postgres
+        image: postgres:15
         env:
-          POSTGRES_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
-          POSTGRES_DB: ${{secrets.DATABASE_NAME}}_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DATABASE_NAME }}_test
         ports:
           - 5432:5432
         options: >-
@@ -34,67 +37,80 @@ jobs:
           --health-timeout=5s
           --health-retries=5
 
-    runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Install python version "3.11"
-        uses: actions/setup-python@v2
+        uses: actions/checkout@v4
+
+      - name: Install Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
-      - name: Installing all dependencies
+
+      - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run automation tests wtih pytest
+
+      - name: Wait for Postgres
+        run: |
+          until pg_isready -h postgres -p 5432 -U postgres
+          do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+
+      - name: Run tests with pytest
         run: |
           pip install pytest
           pytest
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
-          username: ${{secrets.DOCKER_HUB_USERNAME}}
-          password: ${{secrets.DOCKER_HUB_ACCESS_TOKEN}}
-      
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
       - name: Setup Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v1
-      
-      - name: Build and push
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
         id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
-          context: ./
+          context: .
           file: ./Dockerfile
-          builder: ${{steps.buildx.outputs.name}}
           push: true
-          tags: ${{secrets.DOCKER_HUB_USERNAME}}/fastapi-posts-backend:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/fastapi-posts-backend:latest
           cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+
       - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest}}
+        run: echo ${{ steps.docker_build.outputs.digest }}
 
   deploy-docker:
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: build
 
     steps:
-      - name: Set up SSH login connection
+      - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.VM_SSH_KEY }}
 
-      - name: Deploy on server from docker
+      - name: Deploy on server from Docker
         run: |
-          IMAGE="devobams/fastapi-posts-backend:latest"
+          IMAGE="${{ secrets.DOCKER_HUB_USERNAME }}/fastapi-posts-backend:latest"
+
           ssh -o StrictHostKeyChecking=no ipadeolamichaelbamidele@35.188.13.185 << EOF
-            docker pull "$IMAGE"
+            docker pull \$IMAGE
+
             docker stop fastapi-app || true
             docker rm fastapi-app || true
+
             sudo fuser -k 8000/tcp || true
             sleep 2
+
             docker run -d \
               --name fastapi-app \
               -p 8000:8000 \
@@ -106,7 +122,7 @@ jobs:
               -e DATABASE_USERNAME="${{ secrets.DATABASE_USERNAME }}" \
               -e DATABASE_PASSWORD="${{ secrets.DATABASE_PASSWORD }}" \
               -e DATABASE_NAME="${{ secrets.DATABASE_NAME }}" \
-              "$IMAGE"
+              \$IMAGE
           EOF
 
       # - name: Deploy manually to VM
