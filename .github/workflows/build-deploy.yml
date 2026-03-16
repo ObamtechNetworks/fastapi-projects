@@ -99,6 +99,7 @@ jobs:
             docker run -d \
               --name fastapi-app \
               -p 8000:8000 \
+              --restart unless-stopped \
               "$IMAGE"
           EOF
 
@@ -112,12 +113,12 @@ jobs:
       #       pip install -r requirements.txt
       #       sudo systemctl restart fastapi-service.service
       #     EOF
-  deploy-render:
-    name: Deploy to Render
-    runs-on: ubuntu-latest
-    needs: [build]
+  # deploy-render:
+  #   name: Deploy to Render
+  #   runs-on: ubuntu-latest
+  #   needs: [build]
 
-    steps:
-      - name: Trigger Render Deploy
-        run: |
-          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+  #   steps:
+  #     - name: Trigger Render Deploy
+  #       run: |
+  #         curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
