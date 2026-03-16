@@ -90,15 +90,18 @@ jobs:
 
       - name: Deploy on server
         run: |
-          ssh -o StrictHostKeyChecking=no ipadeolamichaelbamidele@35.188.13.185 << 'EOF'
-            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/fastapi-posts-backend:latest
+          IMAGE=${{ secrets.DOCKER_HUB_USERNAME }}/fastapi-posts-backend:latest
+
+          ssh -o StrictHostKeyChecking=no ipadeolamichaelbamidele@35.188.13.185 << EOF
+            docker pull $IMAGE
+
             docker stop fastapi-app || true
             docker rm fastapi-app || true
 
             docker run -d \
               --name fastapi-app \
               -p 8000:8000 \
-              ${{ secrets.DOCKER_HUB_USERNAME }}/fastapi-posts-backend:latest
+              $IMAGE
           EOF
 
       # - name: Deploy manually to VM
