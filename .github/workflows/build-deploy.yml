@@ -76,19 +76,17 @@ jobs:
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest}}
 
-  deploy:
+  deploy-docker:
     runs-on: ubuntu-latest
     needs: [build]
 
     steps:
-      - name: deploying stuff
-        run: echo "going to deploy some stuff"
-      - name: Set up SSH
+      - name: Set up SSH login connection
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.VM_SSH_KEY }}
 
-      - name: Deploy on server
+      - name: Deploy on server from docker
         run: |
           IMAGE="devobams/fastapi-posts-backend:latest"
           ssh -o StrictHostKeyChecking=no ipadeolamichaelbamidele@35.188.13.185 << EOF
