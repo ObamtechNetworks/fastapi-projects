@@ -82,7 +82,7 @@ jobs:
 
     steps:
       - name: Set up SSH login connection
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.VM_SSH_KEY }}
 
@@ -93,6 +93,9 @@ jobs:
             docker pull "$IMAGE"
             docker stop fastapi-app || true
             docker rm fastapi-app || true
+            # Kill any process using port 8000
+            sudo fuser -k 8000/tcp || true
+            sleep 2
             docker run -d \
               --name fastapi-app \
               -p 8000:8000 \
